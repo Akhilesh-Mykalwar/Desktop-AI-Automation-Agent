@@ -1,6 +1,34 @@
 import re
 import subprocess
 
+
+
+def extract_time_seconds(goal_l):
+    """
+    Extract time from goal and convert to seconds.
+    Supports:
+    - minutes
+    - hours
+    - seconds
+    """
+
+    match = re.search(r"(\d+)", goal_l)
+    if not match:
+        return None
+
+    value = int(match.group(1))
+
+    if "hour" in goal_l:
+        return value * 3600
+    if "minute" in goal_l:
+        return value * 60
+    if "second" in goal_l:
+        return value
+
+    return None
+
+
+
 def extract_amount(goal_l, default=10):
     match = re.search(r"(\d+)", goal_l)
     if match:
@@ -36,6 +64,37 @@ def handle_os_controls(goal_l):
                 {"action": "shutdown_pc"}
             ]
         }
+
+
+        # ---------------- TIMED SHUTDOWN ----------------
+    if "shutdown" in goal_l and ("in" in goal_l or "after" in goal_l):
+
+        seconds = extract_time_seconds(goal_l)
+
+        if seconds:
+            return {
+                "action": "execute_plan",
+                "plan": [
+                    {
+                        "action": "shutdown_timer",
+                        "seconds": seconds
+                    }
+                ]
+            }
+
+    # ---------------- CANCEL SHUTDOWN ----------------
+    if "cancel shutdown" in goal_l:
+        return {
+            "action": "execute_plan",
+            "plan": [
+                {"action": "cancel_shutdown"}
+            ]
+        }
+
+
+
+
+
 
     # ---------------- VOLUME ----------------
     if "volume" in goal_l:

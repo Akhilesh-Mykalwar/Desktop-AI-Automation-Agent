@@ -123,6 +123,13 @@ def execute(action):
     elif act == "shutdown_pc":
         subprocess.Popen(["shutdown", "/s", "/t", "0"])
 
+    elif act == "shutdown_timer":
+        seconds = action.get("seconds", 60)
+        subprocess.Popen(["shutdown", "/s", "/t", str(seconds)])
+
+    elif act == "cancel_shutdown":
+        subprocess.Popen(["shutdown", "/a"])
+
 
     elif act == "click_text_universal":
 
