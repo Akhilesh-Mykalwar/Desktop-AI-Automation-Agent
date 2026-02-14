@@ -83,10 +83,13 @@ def execute(action):
         pyautogui.press("volumemute")
 
     elif act == "brightness_up":
-        pyautogui.press("brightnessup")
+        for _ in range(action.get("amount", 3)):
+            pyautogui.press("brightnessup")
 
     elif act == "brightness_down":
-        pyautogui.press("brightnessdown")
+        for _ in range(action.get("amount", 3)):
+            pyautogui.press("brightnessdown")
+        
 
 
 
