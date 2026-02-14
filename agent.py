@@ -2,7 +2,7 @@ import time
 from planner import decide_next_action
 from controller import execute
 
-GOAL = "decrease brightness by 60"
+GOAL = "click video by adrian"
 def main():
     print("🧠 AI Desktop Agent Running")
     print("🎯 Goal:", GOAL)

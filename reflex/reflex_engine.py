@@ -3,9 +3,11 @@ from reflex.youtube_click_reflex import handle_youtube_click
 from reflex.double_click_reflex import handle_double_click
 from reflex.universal_click_reflex import handle_universal_click
 from reflex.OS_control_reflex import handle_os_controls
+from reflex.type_reflex import handle_type
 
 
 REFLEX_HANDLERS = [
+    handle_type,
     handle_os_controls,
     handle_scroll,
     handle_youtube_click,
