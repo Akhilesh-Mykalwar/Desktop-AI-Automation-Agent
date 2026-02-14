@@ -1,4 +1,5 @@
 import re
+import subprocess
 
 def extract_amount(goal_l, default=10):
     match = re.search(r"(\d+)", goal_l)
@@ -9,14 +10,37 @@ def extract_amount(goal_l, default=10):
 
 def handle_os_controls(goal_l):
 
+    # ---------------- LOCK SCREEN ----------------
+    if "lock screen" in goal_l or "lock pc" in goal_l:
+        return {
+            "action": "execute_plan",
+            "plan": [
+                {"action": "lock_screen"}
+            ]
+        }
+
+    # ---------------- SLEEP ----------------
+    if "sleep pc" in goal_l or "sleep computer" in goal_l:
+        return {
+            "action": "execute_plan",
+            "plan": [
+                {"action": "sleep_pc"}
+            ]
+        }
+
+    # ---------------- SHUTDOWN ----------------
+    if "shutdown" in goal_l:
+        return {
+            "action": "execute_plan",
+            "plan": [
+                {"action": "shutdown_pc"}
+            ]
+        }
+
     # ---------------- VOLUME ----------------
     if "volume" in goal_l:
-
         amount = extract_amount(goal_l, default=10)
-
-        # Convert percentage to key presses
-        # Windows volume usually has ~50 steps
-        steps = max(1, int(amount / 2))  
+        steps = max(1, int(amount / 2))
 
         if "up" in goal_l or "increase" in goal_l:
             return {
@@ -42,17 +66,19 @@ def handle_os_controls(goal_l):
                 ]
             }
 
-    # ---------------- BRIGHTNESS ----------------
     if "brightness" in goal_l:
 
         amount = extract_amount(goal_l, default=10)
-        steps = max(1, int(amount / 5))
 
         if "up" in goal_l or "increase" in goal_l:
             return {
                 "action": "execute_plan",
                 "plan": [
-                    {"action": "brightness_up", "amount": steps}
+                    {
+                        "action": "set_brightness_relative",
+                        "direction": "up",
+                        "amount": amount
+                    }
                 ]
             }
 
@@ -60,8 +86,14 @@ def handle_os_controls(goal_l):
             return {
                 "action": "execute_plan",
                 "plan": [
-                    {"action": "brightness_down", "amount": steps}
+                    {
+                        "action": "set_brightness_relative",
+                        "direction": "down",
+                        "amount": amount
+                    }
                 ]
             }
+
+
 
     return None

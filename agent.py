@@ -2,7 +2,7 @@ import time
 from planner import decide_next_action
 from controller import execute
 
-GOAL = "Increase volume"
+GOAL = "decrease brightness by 60"
 def main():
     print("🧠 AI Desktop Agent Running")
     print("🎯 Goal:", GOAL)

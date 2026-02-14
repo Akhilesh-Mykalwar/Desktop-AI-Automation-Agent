@@ -71,6 +71,7 @@ def execute(action):
 
 
 
+
     elif act == "volume_up":
         for _ in range(action.get("amount", 5)):
             pyautogui.press("volumeup")
@@ -82,15 +83,45 @@ def execute(action):
     elif act == "mute":
         pyautogui.press("volumemute")
 
-    elif act == "brightness_up":
-        for _ in range(action.get("amount", 3)):
-            pyautogui.press("brightnessup")
+    elif act == "set_brightness_relative":
 
-    elif act == "brightness_down":
-        for _ in range(action.get("amount", 3)):
-            pyautogui.press("brightnessdown")
+        amount = action.get("amount", 10)
+        direction = action.get("direction", "up")
+
+        # First get current brightness
+        get_cmd = [
+            "powershell",
+            "-Command",
+            "(Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightness).CurrentBrightness"
+        ]
+
+        result = subprocess.check_output(get_cmd)
+        current = int(result.strip())
+
+        if direction == "up":
+            new_value = min(100, current + amount)
+        else:
+            new_value = max(0, current - amount)
+
+        set_cmd = [
+            "powershell",
+            "-Command",
+            f"(Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1,{new_value})"
+        ]
+
+        subprocess.Popen(set_cmd)
+
         
 
+
+    elif act == "lock_screen":
+        subprocess.Popen(["rundll32.exe", "user32.dll,LockWorkStation"])
+
+    elif act == "sleep_pc":
+        subprocess.Popen(["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"])
+
+    elif act == "shutdown_pc":
+        subprocess.Popen(["shutdown", "/s", "/t", "0"])
 
 
     elif act == "click_text_universal":
