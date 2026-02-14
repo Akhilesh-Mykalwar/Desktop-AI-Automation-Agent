@@ -70,6 +70,26 @@ def execute(action):
             time.sleep(delay)
 
 
+
+    elif act == "volume_up":
+        for _ in range(action.get("amount", 5)):
+            pyautogui.press("volumeup")
+
+    elif act == "volume_down":
+        for _ in range(action.get("amount", 5)):
+            pyautogui.press("volumedown")
+
+    elif act == "mute":
+        pyautogui.press("volumemute")
+
+    elif act == "brightness_up":
+        pyautogui.press("brightnessup")
+
+    elif act == "brightness_down":
+        pyautogui.press("brightnessdown")
+
+
+
     elif act == "click_text_universal":
 
         from vision_ocr import find_text_on_screen
