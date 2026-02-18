@@ -2,7 +2,7 @@ import time
 from planner import decide_next_action
 from controller import execute
 
-GOAL = "switch to work mode"
+GOAL = "switch to game mode"
 def main():
     print("🧠 AI Desktop Agent Running")
     print("🎯 Goal:", GOAL)
