@@ -4,9 +4,11 @@ from reflex.double_click_reflex import handle_double_click
 from reflex.universal_click_reflex import handle_universal_click
 from reflex.OS_control_reflex import handle_os_controls
 from reflex.type_reflex import handle_type
+from reflex.mode_reflex import handle_mode
 
 
 REFLEX_HANDLERS = [
+    handle_mode,
     handle_type,
     handle_os_controls,
     handle_scroll,
