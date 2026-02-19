@@ -15,6 +15,7 @@ from controller import execute
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QSize
 
 
 
@@ -55,17 +56,29 @@ class CommandBar(QWidget):
         self.setFixedHeight(140)
 
         # ---------------- Shadow ----------------
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(35)
-        shadow.setXOffset(0)
-        shadow.setYOffset(8)
-        shadow.setColor(QColor(0, 0, 0, 180))
-        self.setGraphicsEffect(shadow)
+
+
 
         # ---------------- Main Layout ----------------
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 15, 20, 15)
         main_layout.setSpacing(0)
+
+        # Wrapper for shadow
+        self.wrapper = QWidget()
+        wrapper_layout = QVBoxLayout()
+        wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        wrapper_layout.setSpacing(0)
+        self.wrapper.setLayout(wrapper_layout)
+
+        # Apply shadow to wrapper ONLY
+        self.shadow = QGraphicsDropShadowEffect(self.wrapper)
+        self.shadow.setBlurRadius(35)
+        self.shadow.setXOffset(0)
+        self.shadow.setYOffset(8)
+        self.shadow.setColor(QColor(0, 0, 0, 180))
+        self.wrapper.setGraphicsEffect(self.shadow)
+
 
         # ---------------- Textbar Container ----------------
         self.container = QWidget()
@@ -105,9 +118,23 @@ class CommandBar(QWidget):
             }
         """)
 
+        # ---------------- Send Button ----------------
+       # ---------------- Send Button ----------------
+        self.send_btn = QPushButton()
+        self.send_btn.setFixedSize(36, 36)
+        self.send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        container_layout.addWidget(self.status_dot)
+        self.send_btn.setIcon(QIcon("assets/icons/send.png"))
+        self.send_btn.setIconSize(QSize(18, 18))
+
+        self.send_btn.clicked.connect(self.handle_command)
+
+
+        container_layout.addWidget(self.status_dot, alignment=Qt.AlignmentFlag.AlignVCenter)
         container_layout.addWidget(self.input)
+        container_layout.addWidget(self.send_btn, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+
 
         self.container.setLayout(container_layout)
 
@@ -159,10 +186,11 @@ class CommandBar(QWidget):
 
 
         # ---------------- Add To Main Layout ----------------
-        main_layout.addWidget(self.container)
-        main_layout.addSpacing(8)
-        main_layout.addWidget(self.segment_container)
+        wrapper_layout.addWidget(self.container)
+        wrapper_layout.addSpacing(8)
+        wrapper_layout.addWidget(self.segment_container)
 
+        main_layout.addWidget(self.wrapper)
         self.setLayout(main_layout)
 
         # ---------------- Personality State ----------------
@@ -314,6 +342,19 @@ class CommandBar(QWidget):
                 border-radius: 18px;
             """)
 
+            self.send_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f5a9c9;
+                    border-radius: 18px;
+                    color: white;
+                    font-size: 14pt;
+                }
+                QPushButton:hover {
+                    background-color: #ff85b5;
+                }
+            """)
+
+
         else:
 
             # Textbar
@@ -345,6 +386,18 @@ class CommandBar(QWidget):
             self.segment_highlight.setStyleSheet("""
                 background-color: rgba(90, 90, 110, 240);
                 border-radius: 18px;
+            """)
+
+            self.send_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: rgba(80, 80, 100, 230);
+                    border-radius: 18px;
+                    color: white;
+                    font-size: 14pt;
+                }
+                QPushButton:hover {
+                    background-color: rgba(110, 110, 140, 230);
+                }
             """)
 
 
