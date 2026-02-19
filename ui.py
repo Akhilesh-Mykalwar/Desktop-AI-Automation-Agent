@@ -1,7 +1,7 @@
 import sys
 import os
 from companion import Companion
-
+import random
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLineEdit,
     QVBoxLayout, QHBoxLayout, QLabel,
@@ -13,6 +13,27 @@ from PyQt6.QtGui import QFont, QColor
 from planner import decide_next_action
 from controller import execute
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
+
+
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    error = pyqtSignal()
+
+    def __init__(self, goal):
+        super().__init__()
+        self.goal = goal
+
+    def run(self):
+        try:
+            action = decide_next_action(self.goal, [])
+            if action.get("action") == "execute_plan":
+                for step in action["plan"]:
+                    execute(step)
+            self.finished.emit()
+        except:
+            self.error.emit()
+
 
 
 class CommandBar(QWidget):
@@ -121,20 +142,47 @@ class CommandBar(QWidget):
 
         self.set_status("running")
 
-        try:
-            action = decide_next_action(goal, [])
+        self.thread = QThread()
+        self.worker = Worker(goal)
+        self.worker.moveToThread(self.thread)
 
-            if action.get("action") == "execute_plan":
-                for step in action["plan"]:
-                    execute(step)
 
-            self.set_status("ready")
 
-        except Exception as e:
-            print("Execution error:", e)
-            self.set_status("error")
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_finished)
+        self.worker.error.connect(self.on_error)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.error.connect(self.thread.quit)
+
+
+        if hasattr(self, "companion"):
+            self.companion.speak("Working on it...")
+
+        self.thread.start()
 
         self.input.clear()
+
+
+    def on_finished(self):
+        self.set_status("ready")
+        if hasattr(self, "companion"):
+            responses = [
+                "Done.",
+                "All set.",
+                "Task complete.",
+                "Finished.",
+            ]
+
+            self.companion.speak(random.choice(responses))
+
+
+
+    def on_error(self):
+        self.set_status("error")
+        if hasattr(self, "companion"):
+            self.companion.speak("Something went wrong.")
+
+
 
 
 if __name__ == "__main__":
