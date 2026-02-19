@@ -52,7 +52,7 @@ class CommandBar(QWidget):
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedWidth(420)
-        self.setFixedHeight(130)
+        self.setFixedHeight(140)
 
         # ---------------- Shadow ----------------
         shadow = QGraphicsDropShadowEffect(self)
@@ -62,20 +62,25 @@ class CommandBar(QWidget):
         shadow.setColor(QColor(0, 0, 0, 180))
         self.setGraphicsEffect(shadow)
 
-        # ---------------- Layout ----------------
+        # ---------------- Main Layout ----------------
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 15, 20, 15)
+        main_layout.setSpacing(0)
 
+        # ---------------- Textbar Container ----------------
         self.container = QWidget()
         self.container.setStyleSheet("""
-            QWidget {
-                background-color: rgba(20, 20, 20, 235);
-                border-radius: 20px;
-            }
-        """)
+                QWidget {
+                    background-color: rgba(240, 240, 240, 230);
+                    border-radius: 28px;
+                }
+            """)
+
 
         container_layout = QHBoxLayout()
-        container_layout.setContentsMargins(15, 10, 15, 10)
+        container_layout.setContentsMargins(15, 14, 15, 14)
+
+        container_layout.setSpacing(8)
 
         # ---------------- Status Indicator ----------------
         self.status_dot = QLabel()
@@ -87,40 +92,88 @@ class CommandBar(QWidget):
 
         # ---------------- Input Field ----------------
         self.input = QLineEdit()
-        # ---------------- Personality Toggle ----------------
-        self.personality = "robo"
-
-        self.toggle_btn = QPushButton()
-        self.toggle_btn.setFixedSize(36, 36)
-        self.toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.toggle_btn.setStyleSheet("border: none;")
-        self.toggle_btn.clicked.connect(self.toggle_personality)
-
         self.input.setPlaceholderText("Ask your desktop...")
         self.input.setFont(QFont("Segoe UI", 13))
         self.input.returnPressed.connect(self.handle_command)
 
         self.input.setStyleSheet("""
             QLineEdit {
-                background-color: transparent;
-                color: white;
+                background: transparent;
                 border: none;
-                padding-left: 10px;
+                color: #444;
+                font-size: 12pt;
             }
         """)
 
+
         container_layout.addWidget(self.status_dot)
         container_layout.addWidget(self.input)
-        container_layout.addWidget(self.toggle_btn)
 
         self.container.setLayout(container_layout)
 
+        # ---------------- Segmented Control ----------------
+        self.segment_container = QWidget()
+        self.segment_container.setFixedSize(160, 44)
+
+        self.segment_container.setStyleSheet("""
+            QWidget {
+                background-color: rgba(235, 235, 235, 230);
+                border-radius: 22px;
+            }
+        """)
+
+        segment_layout = QHBoxLayout()
+        segment_layout.setContentsMargins(4, 4, 4, 4)
+        segment_layout.setSpacing(0)
+
+        self.anime_btn = QPushButton("👧")
+        self.robo_btn = QPushButton("🤖")
+
+        for btn in (self.anime_btn, self.robo_btn):
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setFixedSize(76, 36)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    border: none;
+                    font-size: 16pt;
+                }
+            """)
+
+        segment_layout.addWidget(self.anime_btn)
+        segment_layout.addWidget(self.robo_btn)
+
+        self.segment_container.setLayout(segment_layout)
+
+        # Highlight (placed AFTER layout so it sits behind buttons)
+        self.segment_highlight = QWidget(self.segment_container)
+        self.segment_highlight.setGeometry(4, 4, 76, 36)
+        self.segment_highlight.setStyleSheet("""
+            background-color: white;
+            border-radius: 18px;
+        """)
+        self.segment_highlight.lower()  # send behind buttons
+
+        self.anime_btn.clicked.connect(lambda: self.switch_personality("anime"))
+        self.robo_btn.clicked.connect(lambda: self.switch_personality("robo"))
+
+
+        # ---------------- Add To Main Layout ----------------
         main_layout.addWidget(self.container)
+        main_layout.addSpacing(8)
+        main_layout.addWidget(self.segment_container)
+
         self.setLayout(main_layout)
 
-        self.move_top_right()
+        # ---------------- Personality State ----------------
+        self.personality = "robo"
+
+        # ---------------- Companion ----------------
         self.companion = Companion()
         self.companion.show()
+
+        # ---------------- Final Setup ----------------
+        self.move_top_right()
         self.apply_theme()
 
 
@@ -199,16 +252,21 @@ class CommandBar(QWidget):
 
 
 
-    def toggle_personality(self):
-        if self.personality == "robo":
-            self.personality = "anime"
+    def switch_personality(self, personality):
+        self.personality = personality
+
+        if personality == "anime":
+            self.segment_highlight.move(4, 4)
+        else:
+            self.segment_highlight.move(80, 4)
+
+        if personality == "anime":
             self.companion.animations = {
                 "ready": "assets/anime/IDLE.gif",
                 "running": "assets/anime/RUN.gif",
                 "error": "assets/anime/ERROR.gif"
             }
         else:
-            self.personality = "robo"
             self.companion.animations = {
                 "ready": "assets/robo/IDLE.gif",
                 "running": "assets/robo/RUN.gif",
@@ -219,50 +277,77 @@ class CommandBar(QWidget):
         self.apply_theme()
 
 
+
+
+
     def apply_theme(self):
         if self.personality == "anime":
 
-            # Container
+            # Textbar
             self.container.setStyleSheet("""
                 QWidget {
                     background-color: rgba(255, 230, 245, 240);
-                    border-radius: 20px;
+                    border-radius: 28px;
                 }
             """)
 
-            # Input
             self.input.setStyleSheet("""
                 QLineEdit {
-                    background-color: rgba(255, 255, 255, 220);
-                    color: #333;
-                    border-radius: 12px;
-                    padding: 8px 12px;
-                    border: 1px solid rgba(255, 150, 200, 150);
+                    background: transparent;
+                    border: none;
+                    color: #444;
+                    font-size: 12pt;
+                    padding-left: 6px;
                 }
             """)
 
-            self.toggle_btn.setText("👧")
+            # Segmented control
+            self.segment_container.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(255, 200, 230, 220);
+                    border-radius: 22px;
+                }
+            """)
+
+            self.segment_highlight.setStyleSheet("""
+                background-color: white;
+                border-radius: 18px;
+            """)
 
         else:
 
+            # Textbar
             self.container.setStyleSheet("""
                 QWidget {
                     background-color: rgba(20, 20, 25, 240);
-                    border-radius: 20px;
+                    border-radius: 28px;
                 }
             """)
 
             self.input.setStyleSheet("""
                 QLineEdit {
-                    background-color: rgba(35, 35, 45, 230);
-                    color: white;
-                    border-radius: 12px;
-                    padding: 8px 12px;
+                    background: transparent;
                     border: none;
+                    color: white;
+                    font-size: 12pt;
+                    padding-left: 6px;
                 }
             """)
 
-            self.toggle_btn.setText("🤖")
+            # Segmented control
+            self.segment_container.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(40, 40, 50, 220);
+                    border-radius: 22px;
+                }
+            """)
+
+            self.segment_highlight.setStyleSheet("""
+                background-color: rgba(90, 90, 110, 240);
+                border-radius: 18px;
+            """)
+
+
 
 
 
