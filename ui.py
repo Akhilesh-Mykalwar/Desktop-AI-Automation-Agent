@@ -13,6 +13,8 @@ from PyQt6.QtGui import QFont, QColor
 from planner import decide_next_action
 from controller import execute
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
+from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtGui import QIcon
 
 
 
@@ -50,7 +52,7 @@ class CommandBar(QWidget):
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedWidth(420)
-        self.setFixedHeight(85)
+        self.setFixedHeight(130)
 
         # ---------------- Shadow ----------------
         shadow = QGraphicsDropShadowEffect(self)
@@ -64,8 +66,8 @@ class CommandBar(QWidget):
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 15, 20, 15)
 
-        container = QWidget()
-        container.setStyleSheet("""
+        self.container = QWidget()
+        self.container.setStyleSheet("""
             QWidget {
                 background-color: rgba(20, 20, 20, 235);
                 border-radius: 20px;
@@ -85,6 +87,15 @@ class CommandBar(QWidget):
 
         # ---------------- Input Field ----------------
         self.input = QLineEdit()
+        # ---------------- Personality Toggle ----------------
+        self.personality = "robo"
+
+        self.toggle_btn = QPushButton()
+        self.toggle_btn.setFixedSize(36, 36)
+        self.toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.toggle_btn.setStyleSheet("border: none;")
+        self.toggle_btn.clicked.connect(self.toggle_personality)
+
         self.input.setPlaceholderText("Ask your desktop...")
         self.input.setFont(QFont("Segoe UI", 13))
         self.input.returnPressed.connect(self.handle_command)
@@ -100,14 +111,18 @@ class CommandBar(QWidget):
 
         container_layout.addWidget(self.status_dot)
         container_layout.addWidget(self.input)
-        container.setLayout(container_layout)
+        container_layout.addWidget(self.toggle_btn)
 
-        main_layout.addWidget(container)
+        self.container.setLayout(container_layout)
+
+        main_layout.addWidget(self.container)
         self.setLayout(main_layout)
 
         self.move_top_right()
         self.companion = Companion()
         self.companion.show()
+        self.apply_theme()
+
 
 
     # ---------------- Position Top Right ----------------
@@ -182,6 +197,72 @@ class CommandBar(QWidget):
         if hasattr(self, "companion"):
             self.companion.speak("Something went wrong.")
 
+
+
+    def toggle_personality(self):
+        if self.personality == "robo":
+            self.personality = "anime"
+            self.companion.animations = {
+                "ready": "assets/anime/IDLE.gif",
+                "running": "assets/anime/RUN.gif",
+                "error": "assets/anime/ERROR.gif"
+            }
+        else:
+            self.personality = "robo"
+            self.companion.animations = {
+                "ready": "assets/robo/IDLE.gif",
+                "running": "assets/robo/RUN.gif",
+                "error": "assets/robo/ERROR.gif"
+            }
+
+        self.companion.set_state("ready")
+        self.apply_theme()
+
+
+    def apply_theme(self):
+        if self.personality == "anime":
+
+            # Container
+            self.container.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(255, 230, 245, 240);
+                    border-radius: 20px;
+                }
+            """)
+
+            # Input
+            self.input.setStyleSheet("""
+                QLineEdit {
+                    background-color: rgba(255, 255, 255, 220);
+                    color: #333;
+                    border-radius: 12px;
+                    padding: 8px 12px;
+                    border: 1px solid rgba(255, 150, 200, 150);
+                }
+            """)
+
+            self.toggle_btn.setText("👧")
+
+        else:
+
+            self.container.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(20, 20, 25, 240);
+                    border-radius: 20px;
+                }
+            """)
+
+            self.input.setStyleSheet("""
+                QLineEdit {
+                    background-color: rgba(35, 35, 45, 230);
+                    color: white;
+                    border-radius: 12px;
+                    padding: 8px 12px;
+                    border: none;
+                }
+            """)
+
+            self.toggle_btn.setText("🤖")
 
 
 
