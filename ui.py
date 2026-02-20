@@ -9,6 +9,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, QSize, QPropertyAnimation, QEasingCurve, QPoint
 from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap
 from PyQt6.QtGui import QPainter
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+
+
 # --- Mock imports for functionality ---
 try:
     from companion import Companion
@@ -56,19 +59,27 @@ class CommandBar(QWidget):
         self.main_layout.setContentsMargins(30, 40, 30, 20)
         self.main_layout.setSpacing(12)
 
-        # ---------------- Cloud Layer ----------------
-        # self.cloud_layer = QLabel(self)
-        # self.cloud_layer.setPixmap(QPixmap("assets/icons/cloud.png"))
-        # self.cloud_layer.setScaledContents(True)
-        
-        # # Tightened cloud size to encase the bar better
-        # self.cloud_layer.setFixedSize(500, 130)
-        # self.cloud_layer.move(-10, 30)
-        # self.cloud_layer.lower() 
+        self.cloud_layer = QLabel(self)
 
-        # self.cloud_opacity = QGraphicsOpacityEffect()
-        # self.cloud_opacity.setOpacity(0.28)
-        # self.cloud_layer.setGraphicsEffect(self.cloud_opacity)
+        original_cloud = QPixmap("assets/icons/cloud5.png")
+
+        transform = QPixmap(original_cloud.size())
+        transform.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(transform)
+        painter.translate(original_cloud.width()/2, original_cloud.height()/2)
+        painter.rotate(-12)   # ← anticlockwise tilt
+        painter.translate(-original_cloud.width()/2, -original_cloud.height()/2)
+        painter.drawPixmap(0, 0, original_cloud)
+        painter.end()
+
+        # Small cloud
+        self.cloud_layer.setFixedSize(90, 70)
+
+        # Temporary position (will adjust later)
+        self.cloud_layer.move(0, 0)
+
+      
 
         # ---------------- Textbar Container ----------------
         self.container = QWidget()
@@ -123,61 +134,121 @@ class CommandBar(QWidget):
         self.anime_btn.clicked.connect(lambda: self.switch_personality("anime"))
         self.robo_btn.clicked.connect(lambda: self.switch_personality("robo"))
 
-        # ---------------- Decoration (The Bow) ----------------
+
+# --- Cloud Decoration ---
+        self.cloud_layer = QLabel(self)
+
+        cloud_pixmap = QPixmap("assets/icons/cloud5.png").scaled(
+            130, 70,   # bigger now
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+        rotated_cloud = QPixmap(cloud_pixmap.size())
+        rotated_cloud.fill(Qt.GlobalColor.transparent)
+
+        cloud_painter = QPainter(rotated_cloud)
+        cloud_painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        cloud_painter.translate(cloud_pixmap.width()/2, cloud_pixmap.height()/2)
+        cloud_painter.rotate(-10)   # slightly more tilt
+        cloud_painter.translate(-cloud_pixmap.width()/2, -cloud_pixmap.height()/2)
+        cloud_painter.drawPixmap(0, 0, cloud_pixmap)
+        cloud_painter.end()
+
+        self.cloud_layer.setPixmap(rotated_cloud)
+        self.cloud_layer.setFixedSize(rotated_cloud.size())
+        self.cloud_layer.hide()
+
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(12)
+        shadow.setOffset(0, 3)
+        shadow.setColor(QColor(0, 0, 0, 60))
+        self.cloud_layer.setGraphicsEffect(shadow)
+
+
+        self.cloud_anim = QPropertyAnimation(self.cloud_layer, b"pos")
+        self.cloud_anim.setDuration(6000)
+        self.cloud_anim.setEasingCurve(QEasingCurve.Type.InOutSine)
+        self.cloud_anim.setLoopCount(-1)
+
+
+      # --- Bow Decoration ---
         self.bow = QLabel(self)
 
-        original_pixmap = QPixmap("assets/icons/bow.png")
+        bow_pixmap = QPixmap("assets/icons/bow.png").scaled(
+            36, 36,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
 
-        transform = QPixmap(original_pixmap.size())
-        transform.fill(Qt.GlobalColor.transparent)
+        rotated_bow = QPixmap(bow_pixmap.size())
+        rotated_bow.fill(Qt.GlobalColor.transparent)
 
-        painter = QPainter(transform)
-        painter.translate(original_pixmap.width()/2, original_pixmap.height()/2)
-        painter.rotate(0)  # ← tilt angle here
-        painter.translate(-original_pixmap.width()/2, -original_pixmap.height()/2)
-        painter.drawPixmap(0, 0, original_pixmap)
-        painter.end()
+        bow_painter = QPainter(rotated_bow)
+        bow_painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        bow_painter.translate(bow_pixmap.width()/2, bow_pixmap.height()/2)
+        bow_painter.rotate(0)  # slight tilt
+        bow_painter.translate(-bow_pixmap.width()/2, -bow_pixmap.height()/2)
+        bow_painter.drawPixmap(0, 0, bow_pixmap)
+        bow_painter.end()
 
-        self.bow.setPixmap(transform)
-        self.bow.setScaledContents(True)
-        self.bow.setFixedSize(36, 36)
+        self.bow.setPixmap(rotated_bow)
+        self.bow.setFixedSize(rotated_bow.size())
         self.bow.hide()
 
-        # Assembly
+
+        # ---------------- Assembly ----------------
         self.main_layout.addWidget(self.container)
         self.main_layout.addWidget(self.segment_container)
 
+        self.setLayout(self.main_layout)
+
         self.companion = Companion()
         self.companion.show()
-        # self.start_cloud_animation()
+
         self.apply_theme()
         self.move_top_right()
         self.set_status("ready")
 
-    # def start_cloud_animation(self):
-    #     self.cloud_anim = QPropertyAnimation(self.cloud_layer, b"pos")
-    #     self.cloud_anim.setDuration(5000)
-    #     self.cloud_anim.setStartValue(QPoint(20, 20))
-    #     self.cloud_anim.setEndValue(QPoint(20, 28)) # Subtle floating
-    #     self.cloud_anim.setEasingCurve(QEasingCurve.Type.InOutSine)
-    #     self.cloud_anim.setLoopCount(-1)
-    #     self.cloud_anim.start()
 
     def apply_theme(self):
         if self.personality == "anime":
             self.container.setStyleSheet("""
-                    background: qlineargradient(
-                        x1:0, y1:0, x2:0, y2:1,
-                        stop:0 #ffe4f5,
-                        stop:1 #ffcce8
-                    );
-                    border-radius: 29px;
-                    border: 1px solid #ffb3df;
-                    """)
-         
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #fff3fb,
+                    stop:0.4 #ffe6f5,
+                    stop:1 #ffcce8
+                );
+                border-radius: 29px;
+                border: 1px solid #ffb3df;
+            """)          
+            
+            self.status_dot.setStyleSheet("""
+                background-color: #6fdc9e;
+                border-radius: 7px;
+            """)
+            
             self.input.setStyleSheet("background: transparent; border: none; color: #444;")
             self.send_btn.setIcon(QIcon("assets/icons/send_dark.png"))
-            self.send_btn.setStyleSheet("QPushButton { background-color: white; border-radius: 19px; } QPushButton:hover { background-color: #ffe0f2; }")
+            self.send_btn.setStyleSheet("""
+                QPushButton {
+                    background: qradialgradient(
+                        cx:0.5, cy:0.4, radius:0.9,
+                        stop:0 #ffffff,
+                        stop:1 #f5d7e8
+                    );
+                    border: 1px solid #ffb3df;
+                    border-radius: 19px;
+                }
+                QPushButton:hover {
+                    background: qradialgradient(
+                        cx:0.5, cy:0.4, radius:0.9,
+                        stop:0 #ffffff,
+                        stop:1 #ffd9f2
+                    );
+                }
+            """)
             self.segment_container.setStyleSheet("background-color: rgba(255, 200, 230, 220); border-radius: 22px;")
             self.segment_highlight.setStyleSheet("background-color: white; border-radius: 18px;")
             
@@ -185,8 +256,24 @@ class CommandBar(QWidget):
             self.bow.show()
             self.bow.raise_()
             container_pos = self.container.pos()
-            self.bow.move(container_pos.x() + self.container.width() - 36,
+            self.bow.move(container_pos.x() + self.container.width() - 45,
                         container_pos.y() - 18)
+            
+
+            self.cloud_layer.show()
+            self.cloud_layer.raise_()
+
+            container_pos = self.container.pos()
+
+            self.cloud_layer.move(
+                container_pos.x() - 10,
+                container_pos.y() - 40
+            )
+            start_pos = self.cloud_layer.pos()
+            self.cloud_anim.setStartValue(start_pos)
+            self.cloud_anim.setEndValue(start_pos + QPoint(0, 4))
+            self.cloud_anim.start()
+
         else:
             self.container.setStyleSheet("background-color: rgba(20, 20, 25, 240); border-radius: 29px; border: 1px solid #333;")
             self.input.setStyleSheet("background: transparent; border: none; color: white;")
@@ -195,6 +282,7 @@ class CommandBar(QWidget):
             self.segment_container.setStyleSheet("background-color: rgba(40, 40, 50, 220); border-radius: 22px;")
             self.segment_highlight.setStyleSheet("background-color: rgba(90, 90, 110, 240); border-radius: 18px;")
             self.bow.hide()
+            self.cloud_layer.hide()
 
     def switch_personality(self, p):
         if self.personality == p: return
@@ -207,16 +295,30 @@ class CommandBar(QWidget):
         self.anim.start()
         self.apply_theme()
 
+
+
+
     def handle_command(self):
         goal = self.input.text().strip()
         if not goal: return
         self.set_status("running")
+
+        if hasattr(self, "companion"):
+            self.companion.set_state("running")
+            self.companion.speak("Working on it...")
+
         self.thread = QThread()
         self.worker = Worker(goal)
+
         self.worker.moveToThread(self.thread)
+
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(lambda: (self.set_status("ready"), self.thread.quit()))
-        self.worker.error.connect(lambda: (self.set_status("error"), self.thread.quit()))
+        self.worker.finished.connect(self.on_finished)
+        self.worker.error.connect(self.on_error)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.error.connect(self.thread.quit)
+
+
         self.thread.start()
         self.input.clear()
 
@@ -229,6 +331,19 @@ class CommandBar(QWidget):
         # Adjusted for the new wider/taller window
         self.move(screen.width() - self.width() - 40, 40)
 
+    def on_finished(self):
+        self.set_status("ready")
+        if hasattr(self, "companion"):
+            self.companion.set_state("ready")
+            self.companion.speak("Done.")
+
+    def on_error(self):
+        self.set_status("error")
+        if hasattr(self, "companion"):
+            self.companion.set_state("error")
+            self.companion.speak("Something went wrong.")
+
+            
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = CommandBar()
