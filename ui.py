@@ -187,7 +187,7 @@ class CommandBar(QWidget):
         bow_painter = QPainter(rotated_bow)
         bow_painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         bow_painter.translate(bow_pixmap.width()/2, bow_pixmap.height()/2)
-        bow_painter.rotate(0)  # slight tilt
+        bow_painter.rotate(6)  # slight tilt
         bow_painter.translate(-bow_pixmap.width()/2, -bow_pixmap.height()/2)
         bow_painter.drawPixmap(0, 0, bow_pixmap)
         bow_painter.end()
@@ -343,7 +343,7 @@ class CommandBar(QWidget):
             self.companion.set_state("error")
             self.companion.speak("Something went wrong.")
 
-            
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = CommandBar()
