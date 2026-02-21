@@ -50,7 +50,7 @@ class Worker(QObject):
 class CommandBar(QWidget):
     def __init__(self):
         super().__init__()
-        self.personality = "knight"
+        self.personality = "robo"
 
         # ---------------- Window Setup ----------------
         self.setWindowFlags(
@@ -135,7 +135,7 @@ class CommandBar(QWidget):
         seg_layout.addWidget(self.robo_btn)
 
         self.anime_btn.clicked.connect(lambda: self.switch_personality("anime"))
-        self.robo_btn.clicked.connect(lambda: self.switch_personality("knight"))
+        self.robo_btn.clicked.connect(lambda: self.switch_personality("robo"))
 
         # Segment row: left-aligned
         seg_row = QHBoxLayout()
@@ -217,7 +217,7 @@ class CommandBar(QWidget):
         sword_painter = QPainter(rotated_sword)
         sword_painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         sword_painter.translate(sword_pixmap.width() / 2, sword_pixmap.height() / 2)
-        sword_painter.rotate(-20)
+        sword_painter.rotate(-10)
         sword_painter.translate(-sword_pixmap.width() / 2, -sword_pixmap.height() / 2)
         sword_painter.drawPixmap(0, 0, sword_pixmap)
         sword_painter.end()
@@ -258,6 +258,7 @@ class CommandBar(QWidget):
 
         # ---------------- Init ----------------
         self.companion = Companion()
+        self.companion.set_personality("robo")
         self.companion.show()
 
         self.apply_theme()

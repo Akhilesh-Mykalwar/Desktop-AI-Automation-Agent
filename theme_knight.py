@@ -63,21 +63,20 @@ def apply(ui):
     if hasattr(ui, "cloud_anim"):
         ui.cloud_anim.stop()
 
-    # --- Sword: top-left, hanging over the bar ---
+    # --- Sword: top-left, hugging the bar at a shallower angle ---
     ui.sword_layer.show()
     ui.sword_layer.raise_()
-    # Anchor to left edge of the window, overlapping the container top-left
     container_pos = ui.container.mapTo(ui, ui.container.rect().topLeft())
     ui.sword_layer.move(
-        container_pos.x() - 30,
-        container_pos.y() - 30
+        container_pos.x() - 10,   # closer to bar, less floaty
+        container_pos.y() - 18    # tighter vertical overlap
     )
     ui.sword_anim.start()
 
-    # --- Shield: top-right, mirroring the sword ---
+    # --- Shield: badge-style overlapping top-right corner of the bar ---
     ui.shield.show()
     ui.shield.raise_()
     ui.shield.move(
-        container_pos.x() + ui.container.width() - 14,
-        container_pos.y() - 20
+        container_pos.x() + ui.container.width() - 28,  # overlaps corner, stays in window
+        container_pos.y() - 16                           # sits just above the bar edge
     )

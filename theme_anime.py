@@ -49,7 +49,7 @@ def apply(ui):
     ui.bow.raise_()
     container_pos = ui.container.mapTo(ui, ui.container.rect().topLeft())
     ui.bow.move(
-        container_pos.x() + ui.container.width() - 14,
+        container_pos.x() + ui.container.width() - 38,
         container_pos.y() - 20
     )
 
