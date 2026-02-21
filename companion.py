@@ -5,6 +5,21 @@ from PyQt6.QtGui import QMovie
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 from PyQt6.QtGui import QColor
 
+
+PERSONALITIES = {
+    "anime": {
+        "ready":   "assets/anime/IDLE.gif",
+        "running": "assets/anime/RUN.gif",
+        "error":   "assets/anime/ERROR.gif",
+    },
+    "knight": {
+        "ready":   "assets/knight/IDLE.gif",
+        "running": "assets/knight/RUN.gif",
+        "error":   "assets/knight/ERROR.gif",
+    },
+}
+
+
 class Companion(QWidget):
 
     def __init__(self):
@@ -15,7 +30,6 @@ class Companion(QWidget):
             Qt.WindowType.WindowStaysOnTopHint |
             Qt.WindowType.Tool
         )
-
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(180, 180)
 
@@ -24,13 +38,8 @@ class Companion(QWidget):
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setGeometry(0, 0, 180, 180)
 
-        # Animations
-        self.animations = {
-            "ready": "assets/anime/IDLE.gif",
-            "running": "assets/anime/RUN.gif",
-            "error": "assets/anime/ERROR.gif"
-        }
-
+        self.animations = PERSONALITIES["anime"].copy()
+        self.current_state = "ready"
         self.current_movie = None
 
         # Speech bubble (separate window)
@@ -42,19 +51,15 @@ class Companion(QWidget):
         )
         self.bubble.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-
         shadow = QGraphicsDropShadowEffect(self.bubble)
         shadow.setBlurRadius(25)
         shadow.setXOffset(0)
         shadow.setYOffset(6)
         shadow.setColor(QColor(0, 0, 0, 180))
-
-
         self.bubble.setGraphicsEffect(shadow)
 
         self.bubble.setWordWrap(True)
         self.bubble.setMaximumWidth(240)
-
         self.bubble.setStyleSheet("""
             QLabel {
                 background-color: rgba(255, 255, 255, 245);
@@ -65,14 +70,17 @@ class Companion(QWidget):
                 font-size: 11pt;
             }
         """)
-
-
-
-
         self.bubble.hide()
 
         self.move_bottom_right()
         self.set_state("ready")
+
+    def set_personality(self, personality: str):
+        """Swap the sprite sheet set and refresh the current animation instantly."""
+        if personality not in PERSONALITIES:
+            return
+        self.animations = PERSONALITIES[personality].copy()
+        self.set_state(self.current_state)  # reload current anim with new assets
 
     def move_bottom_right(self):
         screen = QApplication.primaryScreen().geometry()
@@ -81,6 +89,7 @@ class Companion(QWidget):
         self.move(x, y)
 
     def set_state(self, state):
+        self.current_state = state
         path = self.animations.get(state)
 
         if not path or not os.path.exists(path):
@@ -98,13 +107,11 @@ class Companion(QWidget):
         self.bubble.adjustSize()
 
         companion_pos = self.pos()
-
         bubble_width = self.bubble.width()
         bubble_height = self.bubble.height()
 
         x = companion_pos.x() + (self.width() - bubble_width) // 2
         y = companion_pos.y() - bubble_height - 4
-
 
         self.bubble.move(x, y)
         self.bubble.show()
