@@ -135,7 +135,7 @@ class CommandBar(QWidget):
         seg_layout.addWidget(self.robo_btn)
 
         self.anime_btn.clicked.connect(lambda: self.switch_personality("anime"))
-        self.robo_btn.clicked.connect(lambda: self.switch_personality("robo"))
+        self.robo_btn.clicked.connect(lambda: self.switch_personality("knight"))
 
         # Segment row: left-aligned
         seg_row = QHBoxLayout()
@@ -258,7 +258,7 @@ class CommandBar(QWidget):
 
         # ---------------- Init ----------------
         self.companion = Companion()
-        self.companion.set_personality("robo")
+        self.companion.set_personality("knight")
         self.companion.show()
 
         self.apply_theme()
