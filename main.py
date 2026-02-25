@@ -11,6 +11,9 @@ from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap
 from PyQt6.QtGui import QPainter
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 
+# pynput runs in its own thread and works even when the Qt window is hidden
+from pynput import keyboard as pynput_keyboard
+
 import theme_anime
 import theme_knight
 
@@ -47,10 +50,37 @@ class Worker(QObject):
             self.error.emit()
 
 
+class HotkeyListener(QObject):
+    """
+    Runs pynput in a background thread.
+    Emits toggle_signal on the Qt main thread via signal,
+    so it's safe to call show/hide from the slot.
+    """
+    toggle_signal = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self._listener = None
+
+    def start(self):
+        def on_press(key):
+            if key == pynput_keyboard.Key.f2:
+                self.toggle_signal.emit()
+
+        self._listener = pynput_keyboard.Listener(on_press=on_press)
+        self._listener.daemon = True   # dies with the main process
+        self._listener.start()
+
+    def stop(self):
+        if self._listener:
+            self._listener.stop()
+
+
 class CommandBar(QWidget):
     def __init__(self):
         super().__init__()
         self.personality = "robo"
+        self._ui_visible = True
 
         # ---------------- Window Setup ----------------
         self.setWindowFlags(
@@ -59,26 +89,22 @@ class CommandBar(QWidget):
             Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        # Wider + taller: gives decoration room on both sides + top
         self.setFixedSize(520, 160)
 
         # ---------------- Main Layout ----------------
-        # Single row: [sword/cloud] [main bar with segmented inside] [shield/bow]
         self.main_layout = QHBoxLayout(self)
         self.main_layout.setContentsMargins(0, 40, 0, 20)
         self.main_layout.setSpacing(0)
 
-        # Left spacer for sword/cloud decoration
         self.left_deco_spacer = QWidget()
         self.left_deco_spacer.setFixedWidth(55)
         self.left_deco_spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-        # Right spacer for shield/bow decoration
         self.right_deco_spacer = QWidget()
         self.right_deco_spacer.setFixedWidth(55)
         self.right_deco_spacer.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-        # ---------------- Center panel (bar + segment) ----------------
+        # ---------------- Center panel ----------------
         center_panel = QWidget()
         center_layout = QVBoxLayout(center_panel)
         center_layout.setContentsMargins(0, 0, 0, 0)
@@ -137,7 +163,6 @@ class CommandBar(QWidget):
         self.anime_btn.clicked.connect(lambda: self.switch_personality("anime"))
         self.robo_btn.clicked.connect(lambda: self.switch_personality("knight"))
 
-        # Segment row: left-aligned
         seg_row = QHBoxLayout()
         seg_row.setContentsMargins(6, 0, 0, 0)
         seg_row.addWidget(self.segment_container)
@@ -149,12 +174,10 @@ class CommandBar(QWidget):
         self.main_layout.addWidget(self.left_deco_spacer)
         self.main_layout.addWidget(center_panel)
         self.main_layout.addWidget(self.right_deco_spacer)
-
         self.setLayout(self.main_layout)
 
         # ---------------- Cloud Decoration (anime) ----------------
         self.cloud_layer = QLabel(self)
-
         cloud_pixmap = QPixmap("assets/icons/cloud5.png").scaled(
             120, 65,
             Qt.AspectRatioMode.KeepAspectRatio,
@@ -169,7 +192,6 @@ class CommandBar(QWidget):
         cloud_painter.translate(-cloud_pixmap.width() / 2, -cloud_pixmap.height() / 2)
         cloud_painter.drawPixmap(0, 0, cloud_pixmap)
         cloud_painter.end()
-
         self.cloud_layer.setPixmap(rotated_cloud)
         self.cloud_layer.setFixedSize(rotated_cloud.size())
         self.cloud_layer.hide()
@@ -265,6 +287,24 @@ class CommandBar(QWidget):
         self.move_top_right()
         self.set_status("ready")
 
+        # ---------------- Global F2 Hotkey (pynput) ----------------
+        self._hotkey = HotkeyListener()
+        self._hotkey.toggle_signal.connect(self.toggle_ui)
+        self._hotkey.start()
+
+    # ------------------------------------------------------------------ #
+    # Toggle — called from pynput thread via Qt signal (thread-safe)      #
+    # ------------------------------------------------------------------ #
+    def toggle_ui(self):
+        self._ui_visible = not self._ui_visible
+        if self._ui_visible:
+            self.show()
+            self.companion.show()
+        else:
+            self.companion.bubble.hide()
+            self.companion.hide()
+            self.hide()
+
     def apply_theme(self):
         if self.personality == "anime":
             theme_anime.apply(self)
@@ -326,6 +366,10 @@ class CommandBar(QWidget):
         if hasattr(self, "companion"):
             self.companion.set_state("error")
             self.companion.speak("Something went wrong.")
+
+    def closeEvent(self, event):
+        self._hotkey.stop()
+        super().closeEvent(event)
 
 
 if __name__ == "__main__":
