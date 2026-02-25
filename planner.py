@@ -12,21 +12,29 @@ from skills.whatsapp_send import WhatsAppSendMessageSkill
 from skills.discord_voice import DiscordVoiceSkill
 from skills.google_search import GoogleSearchSkill
 
-
 from reflex.reflex_engine import check_reflex
 
 # ------------------------
-# LLM SETUP
+# LLM SETUP — lazy loaded
 # ------------------------
 
 MODEL_NAME = "Phi-3-mini-4k-instruct-q4.gguf"
 MODEL_PATH = r"C:\Users\Akhil\OneDrive\Desktop\AI\Desktop AI Assistant\Models"
 
-model = GPT4All(
-    model_name=MODEL_NAME,
-    model_path=MODEL_PATH,
-    allow_download=False
-)
+_model = None  # not loaded yet
+
+def _get_model():
+    """Load the model on first use, then cache it."""
+    global _model
+    if _model is None:
+        print("⏳ Loading model...")
+        _model = GPT4All(
+            model_name=MODEL_NAME,
+            model_path=MODEL_PATH,
+            allow_download=False
+        )
+        print("✅ Model ready.")
+    return _model
 
 
 # ------------------------
@@ -65,7 +73,7 @@ def extract_json(text: str):
 
 def parse_goal(goal: str) -> dict:
     prompt = f"{SYSTEM_PROMPT}\nGoal: {goal}"
-    output = model.generate(prompt, max_tokens=64, temp=0)
+    output = _get_model().generate(prompt, max_tokens=64, temp=0)
 
     json_text = extract_json(output)
     if not json_text:
@@ -76,7 +84,6 @@ def parse_goal(goal: str) -> dict:
     except json.JSONDecodeError:
         return {}
 
-    # normalize pipe issues
     for key in ("intent", "app"):
         val = data.get(key)
         if isinstance(val, str) and "|" in val:
@@ -91,9 +98,6 @@ def normalize_intent(intent: dict, goal: str) -> dict:
     if not intent:
         intent = {}
 
-    # ------------------------
-    # APP DETECTION
-    # ------------------------
     if not intent.get("app"):
         if "whatsapp" in goal_l:
             intent["app"] = "whatsapp"
@@ -106,59 +110,37 @@ def normalize_intent(intent: dict, goal: str) -> dict:
         elif "google" in goal_l or "chrome" in goal_l:
             intent["app"] = "google"
 
-    # ------------------------
-# SPOTIFY PLAY DETECTION
-# ------------------------
     if "spotify" in goal_l:
         intent["app"] = "spotify"
-
         if "play" in goal_l or "start" in goal_l or "resume" in goal_l:
             intent["intent"] = "play_spotify"
-
-            # extract playlist name
             words = goal_l.split("playlist", 1)
             if len(words) > 1:
                 intent["playlist"] = words[1].strip()
 
-    # ------------------------
-    # SEARCH DETECTION
-    # ------------------------
     if "search" in goal_l:
         intent["intent"] = "search"
-
         after = goal_l.split("search", 1)[1].strip()
         for prefix in ("for ", "about ", "on "):
             if after.startswith(prefix):
                 after = after[len(prefix):]
-
         if after:
             intent["track_name"] = after
 
     if "incognito" in goal_l:
         intent["incognito"] = True
 
-    # ------------------------
-    # SEND MESSAGE DETECTION
-    # ------------------------
     if "send" in goal_l:
         intent["send_message"] = True
-
-        # extract message
         after_send = goal_l.split("send", 1)[1].strip()
         intent["message"] = after_send
-
-        # clean contact name if needed
         if intent.get("track_name"):
             intent["track_name"] = intent["track_name"].split("and send")[0].strip()
 
-    # ------------------------
-    # DISCORD VOICE DETECTION
-    # ------------------------
     if "discord" in goal_l and (
         "join" in goal_l or "voice" in goal_l or "connect" in goal_l
     ):
         intent["intent"] = "join_voice"
-
         words = goal_l.split()
         if "join" in words:
             idx = words.index("join")
@@ -188,54 +170,35 @@ SKILLS = [
 # ------------------------
 
 def decide_next_action(goal, history):
- 
-    goal_l = goal.lower().strip()
 
-    # ------------------------
-    # UNIVERSAL SCROLL (NO AI)
-    # ------------------------
-
-def decide_next_action(goal, history):
-
-    # 1️⃣ Reflex layer
+    # 1️⃣ Reflex layer — no model needed, runs instantly
     reflex_result = check_reflex(goal)
     if reflex_result:
         return reflex_result
 
-    # 2️⃣ AI layer (existing logic continues)
-
-
+    # 2️⃣ AI layer — model loaded here on first call only
     intent = parse_goal(goal)
     intent = normalize_intent(intent, goal)
     print("🧠 NORMALIZED INTENT:", intent)
 
     plans = []
 
-    # 1️⃣ OPEN APP (avoid duplicate google search open)
     if intent.get("app") and not (
         intent.get("intent") == "search"
         and intent.get("app") == "google"
     ):
-        open_intent = {
-            "intent": "open_app",
-            "app": intent["app"]
-        }
-
+        open_intent = {"intent": "open_app", "app": intent["app"]}
         for skill in SKILLS:
             if skill.can_handle(open_intent):
                 plans.extend(skill.build_plan(open_intent))
                 break
 
-    # 2️⃣ SEARCH
     if intent.get("intent") == "search":
         for skill in SKILLS:
             if skill.can_handle(intent):
                 plans.extend(skill.build_plan(intent))
                 break
 
-    # 3️⃣ SEND MESSAGE
-    # 3️⃣ SEND MESSAGE
-    # 3️⃣ SEND MESSAGE
     if intent.get("send_message") and intent.get("message"):
         plans.extend([
             {"action": "wait", "time": 0.5},
@@ -243,15 +206,12 @@ def decide_next_action(goal, history):
             {"action": "press", "key": "enter"}
         ])
 
-    # SPOTIFY PLAY
     if intent.get("intent") == "play_spotify":
         for skill in SKILLS:
             if skill.can_handle(intent):
                 plans.extend(skill.build_plan(intent))
                 break
 
-
-    # 4️⃣ DISCORD VOICE
     if intent.get("intent") == "join_voice":
         for skill in SKILLS:
             if skill.can_handle(intent):
@@ -261,9 +221,6 @@ def decide_next_action(goal, history):
     print("📦 FINAL PLAN:", plans)
 
     if plans:
-        return {
-            "action": "execute_plan",
-            "plan": plans
-        }
+        return {"action": "execute_plan", "plan": plans}
 
     return {"action": "done"}
