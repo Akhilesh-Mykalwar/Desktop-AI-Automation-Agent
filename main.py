@@ -12,12 +12,12 @@ from PyQt6.QtGui import QPainter
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 
 # pynput runs in its own thread and works even when the Qt window is hidden
+
 from pynput import keyboard as pynput_keyboard
 
 import theme_anime
 import theme_knight
 
-# --- Mock imports for functionality ---
 try:
     from companion import Companion
     from planner import decide_next_action
